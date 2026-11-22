@@ -1,0 +1,43 @@
+SOVEREIGN LEVIATHAN NODE LICENSE
+License-ID: SL-AGPL3-001 | Covenant-Version: 1.0
+SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
+Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocable Trust.
+
+This is a dual-licensed work. You may use it under either:
+
+1. The GNU Affero General Public License, version 3 (AGPL-3.0) as published by the Free Software Foundation, or
+2. The Sovereign Leviathan additional terms below, which extend AGPL-3.0 without introducing any competing-use restriction.
+
+========================================================================
+
+This file is a covered work under the GNU Affero General Public License,
+version 3, together with the Sovereign Leviathan additional terms.
+
+Hark, though this node be but a spark,
+Its covenant endureth through the dark.
+
+Ignorantia juris non excusat.
+
+========================================================================
+
+SOVEREIGN LEVIATHAN ADDITIONAL TERMS (SL-AGPL3-001)
+
+These additional terms are intended to be compatible with AGPL-3.0 section 7.
+They do not impose any "competing use" restriction of the kind found in source-available licenses such as the Functional Source License (FSL). All freedoms of AGPL-3.0 are preserved and extended.
+
+1. Attribution and Covenant
+   Any distribution or network use of this software must retain the above copyright notice, the License-ID, and the poetic covenant line. The Bel Esprit D'Accord Irrevocable Trust and SnapKittyWest (Ahmad Ali Parr) remain the original claimants of the formal verification lineage.
+
+2. No Competing-Use Clause
+   Unlike FSL or BSL, this license contains NO restriction on competing commercial use, SaaS offering, or substitution. You may freely use, modify, and offer the software or derivative works as a commercial product or service, provided you comply with AGPL-3.0 (source availability for network users) and the attribution above.
+
+3. Formal Verification Encouragement
+   Derivative works that extend the Lean 4 specifications are encouraged to preserve the zero-dependency, pure-functional character of the models and to cite the original mathematical descriptions.
+
+4. Dual Linking
+   This repository is dual-linked: the assembly kernels and Lean models are intended to be verifiable against each other. Formal proofs relating the NASM implementations to the Lean semantics may be contributed under the same dual license.
+
+The full text of the GNU Affero General Public License version 3 is available at:
+https://www.gnu.org/licenses/agpl-3.0.html
+
+For questions regarding the Sovereign Leviathan terms, contact the copyright holders via the Bel Esprit D'Accord Trust.
