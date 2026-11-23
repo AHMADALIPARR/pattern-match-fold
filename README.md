@@ -40,6 +40,7 @@ zig/
 cuda/
   pattern_fold.ptx            # Pure PTX kernel mirroring full_pattern_sass + warp barriers
   pattern_fold_inline.cu      # CUDA C++ with inline PTX (same sequence)
+  warp_shuffle.cu             # Warp shuffle primitives (butterfly, up/down, XOR reduce)
 bluespec/
   LatticeTemporalHash.bsv     # Synthesizable Bluespec module for the lattice-temporal hash
 ```
@@ -77,8 +78,13 @@ gcc -O2 -std=c11 host/launch_cubin.c -lcuda -o launch_cubin && ./launch_cubin
 
 - `cuda/pattern_fold.ptx` is a pure PTX kernel (sm_87) that implements the identical 16-step sequence. Warp scheduling uses `bar.sync` where the SASS version used scoreboard barriers.
 - `cuda/pattern_fold_inline.cu` is the same sequence expressed with inline PTX inside a CUDA C++ kernel, using `__syncwarp()` for the barrier points.
+- `cuda/warp_shuffle.cu` adds warp shuffle primitives:
+  - `warp_butterfly_xor`, `warp_shfl_up` / `warp_shfl_down`, `warp_shfl`
+  - `warp_xor_reduce` (full butterfly reduction)
+  - `pattern_fold_shuffle` kernel that inserts butterfly exchanges into the 16-step fold
+  - `warp_shuffle_demo` kernel demonstrating the primitives
 
-Both produce the same per-lane result as `full_pattern_sass` / the C reference model.
+Both pure-PTX and inline kernels produce the same per-lane result as `full_pattern_sass` / the C reference model. The shuffle variants add inter-lane communication while preserving the local algebraic structure.
 
 ## Bluespec Hardware Module
 
