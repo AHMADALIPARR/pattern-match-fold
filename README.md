@@ -19,14 +19,14 @@ This is a **dual-linked repository**: the NASM assembly kernels and the Lean 4 m
 
 ## License
 
-Dual-licensed under:
+Dual-licensed. You may use this work under either:
 
-- GNU Affero General Public License v3 (AGPL-3.0), and
-- Sovereign Leviathan additional terms (License-ID: SL-AGPL3-001).
+1. The GNU Affero General Public License, version 3 (AGPL-3.0), or
+2. The Sovereign Leviathan additional terms (License-ID: SL-AGPL3-001), which extend AGPL-3.0.
 
-**There is no competing-use clause.** Unlike the Functional Source License (FSL), this work imposes no restriction on commercial use, SaaS offering, or substitution. You may freely compete with or embed the software provided you comply with AGPL-3.0 source-availability obligations for network users and retain the attribution / covenant notice.
+The Sovereign Leviathan terms require retention of the copyright notice, License-ID, and the poetic covenant line on any distribution or network use. The Bel Esprit D'Accord Irrevocable Trust and SnapKittyWest (Ahmad Ali Parr) remain the original claimants of the formal verification lineage.
 
-See the [LICENSE](LICENSE) file for the full text. The custom Sovereign Leviathan header is preserved on every source file.
+See the [LICENSE](LICENSE) file for the full text. The Sovereign Leviathan header is preserved on every source file.
 
 Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocable Trust.
 
@@ -97,7 +97,6 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 **Core Design Principles**:
 - Zero external dependencies in Lean models
 - Semantic lock-step between specification and implementation
-- No competing-use restriction
 
 **Supported Environments**: x86-64 (AVX2), Ampere SM86/SM87 (CUDA/SASS), SourceMod, Bluespec synthesis
 
@@ -263,7 +262,7 @@ No machine-checked refinement proofs are currently present; the dual-link is the
 | SW-REQ-001 Zero external Lean deps | Lean models | `lean/*.lean` | Inspection | No imports beyond core |
 | IF-REQ-001 Cubin loadable | Zig builder | `emit_cubin.zig` | `cuModuleLoadData` | `host/launch_cubin.c` |
 | VER-REQ-001 Deterministic reference | C model | `ref_fold_lane` in `launch_cubin.c` | Mismatch count | bench/benchmark.cu |
-| SAF-REQ-001 No competing-use | License | LICENSE | Legal review | LICENSE text |
+| SAF-REQ-001 Attribution retained | License | LICENSE | Inspection | LICENSE text |
 
 Requirements without full evidence are marked as design intent.
 
@@ -348,7 +347,6 @@ Results are environment-dependent; the harness reports GB/s, Gops/s, and mismatc
 - Version: 0.1.0 (flake)
 - All source files carry Sovereign Leviathan header
 - Dual license (AGPL-3.0 + SL-AGPL3-001)
-- No competing-use clause
 - Change control: Git history on `main`
 
 ---
