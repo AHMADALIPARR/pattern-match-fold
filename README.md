@@ -33,6 +33,8 @@ sourcepawn/
   LatticeTemporalHash.sp      # SourcePawn lowering of the lattice-temporal hash
 zig/
   p3_sass_lowering.zig        # Zig 128-bit P3 ISA to SM87 SASS container lowering + pattern fold sequence
+bluespec/
+  LatticeTemporalHash.bsv     # Synthesizable Bluespec module for the lattice-temporal hash
 ```
 
 ## Building the Assembly Kernel
@@ -53,6 +55,10 @@ The lattice-temporal hash (`LatticeTemporalHash`) has been lowered into SourcePa
 
 `zig/p3_sass_lowering.zig` defines a 64-bit Sovereign P3 instruction word and lowers selected opcodes (including a fused pattern-fold sequence mirroring the AVX2 mix round) into 128-bit SM86/SM87 SASS containers. It generates a binary blob at comptime via `pattern_fold_sm87`.
 
+## Bluespec Hardware Module
+
+`bluespec/LatticeTemporalHash.bsv` is a synthesizable Bluespec SystemVerilog implementation of the lattice-temporal hash. It exposes a Put/Get interface for byte absorption and 256-bit digest retrieval, with rules for absorb and finalisation. Parameters match the Lean specification (Q=3329, N=8, M=16, T=8).
+
 ## Mathematical Semantics (Pattern Kernel)
 
 Let \( V = (\mathbb{Z}/2^{32}\mathbb{Z})^8 \).
@@ -64,13 +70,13 @@ The Lean function `PatternMatchFold.avx2PatternKernel` realises exactly these se
 ## Custom Hashing Algorithms
 
 - **SimdPQHash**: 512-bit internal state, 256-bit digest, 12 rounds of ARX + modular multiplications. Designed so that Grover’s algorithm yields approximately 128-bit security against quantum pre-image/collision search. No number-theoretic assumptions.
-- **LatticeTemporalHash**: Illustrative lattice-style construction over a small prime with a data-independent temporal permutation schedule. Intended as a starting point for further analysis. Now also available as a SourcePawn implementation.
+- **LatticeTemporalHash**: Illustrative lattice-style construction over a small prime with a data-independent temporal permutation schedule. Intended as a starting point for further analysis. Available in Lean, SourcePawn, and synthesizable Bluespec.
 
 Both are pure, zero-dependency Lean 4 and map directly onto SIMD instructions.
 
 ## Dual Linking
 
-This repository is dual-linked to the formal-verification lineage maintained under the Bel Esprit D'Accord Trust / SnapKitty Research Lab. The Lean models are the specification; the assembly is the implementation. The SourcePawn and Zig lowerings provide additional targets. Contributions that add refinement proofs are welcome under the same dual license.
+This repository is dual-linked to the formal-verification lineage maintained under the Bel Esprit D'Accord Trust / SnapKitty Research Lab. The Lean models are the specification; the assembly is the implementation. The SourcePawn, Zig, and Bluespec lowerings provide additional targets. Contributions that add refinement proofs are welcome under the same dual license.
 
 ---
 
