@@ -29,10 +29,13 @@ lean/
   LatticeTemporalHash.lean    # Lattice-based temporal hash over Z/qZ
 host/
   pattern_host.c              # Minimal C test harness
+  launch_cubin.c              # Minimal C11 CUDA driver API launcher for p3_sm87.cubin
 sourcepawn/
   LatticeTemporalHash.sp      # SourcePawn lowering of the lattice-temporal hash
 zig/
   p3_sass_lowering.zig        # Zig 128-bit P3 ISA to SM87 SASS container lowering + pattern fold sequence
+  emit_cubin.zig              # Zero-dependency comptime ELF64 .cubin builder (SM87)
+  p3_mem_sm87.zig             # Comptime SASS load/store helpers + pattern-fold sequences
 bluespec/
   LatticeTemporalHash.bsv     # Synthesizable Bluespec module for the lattice-temporal hash
 ```
@@ -51,13 +54,22 @@ gcc -O3 -mavx2 -mpopcnt -std=c11 host/pattern_host.c pattern_kernel.obj -o patte
 
 The lattice-temporal hash (`LatticeTemporalHash`) has been lowered into SourcePawn (`sourcepawn/LatticeTemporalHash.sp`) for use in SourceMod plugins. It preserves the modular arithmetic, public matrix, temporal permutation schedule, and byte encoding. Compile with a modern SourcePawn compiler supporting transitional syntax.
 
-## Zig GPU Lowering
+## Zig GPU Lowering & Cubin Builder
 
-`zig/p3_sass_lowering.zig` defines a 64-bit Sovereign P3 instruction word and lowers selected opcodes (including a fused pattern-fold sequence mirroring the AVX2 mix round) into 128-bit SM86/SM87 SASS containers. It generates a binary blob at comptime via `pattern_fold_sm87`.
+- `zig/p3_sass_lowering.zig` defines a 64-bit Sovereign P3 instruction word and lowers selected opcodes into 128-bit SM86/SM87 SASS containers.
+- `zig/p3_mem_sm87.zig` provides comptime helpers (`movCbank0`, `ldgE64`, `stgE64`, `s2rTidX`, `imadWideCbank0`, etc.) and two ready-to-use streams: `p3_pattern_sass` and `warp_pattern_sass`.
+- `zig/emit_cubin.zig` is a zero-dependency ELF64 cubin builder that emits a minimal SM87 cubin accepted by `cuModuleLoadData` and `nvdisasm`. Swap in `p3_pattern_sass` or `warp_pattern_sass` for a full kernel.
+
+Generate and inspect:
+```bash
+zig run zig/emit_cubin.zig
+nvdisasm -hex p3_sm87.cubin
+gcc -std=c11 host/launch_cubin.c -lcuda -o launch_cubin && ./launch_cubin
+```
 
 ## Bluespec Hardware Module
 
-`bluespec/LatticeTemporalHash.bsv` is a synthesizable Bluespec SystemVerilog implementation of the lattice-temporal hash. It exposes a Put/Get interface for byte absorption and 256-bit digest retrieval, with rules for absorb and finalisation. Parameters match the Lean specification (Q=3329, N=8, M=16, T=8).
+`bluespec/LatticeTemporalHash.bsv` is a synthesizable Bluespec SystemVerilog implementation of the lattice-temporal hash. It exposes a Put/Get interface for byte absorption and 256-bit digest retrieval, with rules for absorb and finalisation. Parameters match the Lean specification (Q=3329, N=8, M=16, T=8). Finalisation includes the extra temporal permute to match Lean/SourcePawn.
 
 ## Mathematical Semantics (Pattern Kernel)
 
