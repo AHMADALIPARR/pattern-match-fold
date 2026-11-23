@@ -29,13 +29,14 @@ lean/
   LatticeTemporalHash.lean    # Lattice-based temporal hash over Z/qZ
 host/
   pattern_host.c              # Minimal C test harness
-  launch_cubin.c              # Minimal C11 CUDA driver API launcher for p3_sm87.cubin
+  launch_cubin.c              # Verification launcher with deterministic C11 reference model
 sourcepawn/
   LatticeTemporalHash.sp      # SourcePawn lowering of the lattice-temporal hash
 zig/
   p3_sass_lowering.zig        # Zig 128-bit P3 ISA to SM87 SASS container lowering + pattern fold sequence
   emit_cubin.zig              # Zero-dependency comptime ELF64 .cubin builder (SM87)
-  p3_mem_sm87.zig             # Comptime SASS load/store helpers + pattern-fold sequences
+  p3_mem_sm87.zig             # Comptime SASS load/store helpers + short sequences
+  full_pattern_sass.zig       # Full 16-step pattern-fold SASS (LOP3/SHF/IMAD) matching AVX2 mix
 bluespec/
   LatticeTemporalHash.bsv     # Synthesizable Bluespec module for the lattice-temporal hash
 ```
@@ -57,15 +58,19 @@ The lattice-temporal hash (`LatticeTemporalHash`) has been lowered into SourcePa
 ## Zig GPU Lowering & Cubin Builder
 
 - `zig/p3_sass_lowering.zig` defines a 64-bit Sovereign P3 instruction word and lowers selected opcodes into 128-bit SM86/SM87 SASS containers.
-- `zig/p3_mem_sm87.zig` provides comptime helpers (`movCbank0`, `ldgE64`, `stgE64`, `s2rTidX`, `imadWideCbank0`, etc.) and two ready-to-use streams: `p3_pattern_sass` and `warp_pattern_sass`.
-- `zig/emit_cubin.zig` is a zero-dependency ELF64 cubin builder that emits a minimal SM87 cubin accepted by `cuModuleLoadData` and `nvdisasm`. Swap in `p3_pattern_sass` or `warp_pattern_sass` for a full kernel.
+- `zig/p3_mem_sm87.zig` provides comptime helpers and short streams (`p3_pattern_sass`, `warp_pattern_sass`).
+- `zig/full_pattern_sass.zig` contains the complete 16-step pattern-fold sequence (shift-xor stages + nonlinear mul-add folds) that mirrors the AVX2 mix network, plus LOP3/SHF/IMAD helpers.
+- `zig/emit_cubin.zig` is a zero-dependency ELF64 cubin builder. Swap in `full_pattern_sass` for the full kernel.
+- `host/launch_cubin.c` is a verification launcher with an exact deterministic C11 reference model (`ref_fold_lane`) that matches the SASS sequence.
 
-Generate and inspect:
+Generate and verify:
 ```bash
 zig run zig/emit_cubin.zig
 nvdisasm -hex p3_sm87.cubin
-gcc -std=c11 host/launch_cubin.c -lcuda -o launch_cubin && ./launch_cubin
+gcc -O2 -std=c11 host/launch_cubin.c -lcuda -o launch_cubin && ./launch_cubin
 ```
+
+Note: The attached ELF hex dump is an x86_64 host binary (EM_X86_64, containing a `mat_vec` function), not a CUDA cubin. The cubin builder produces a CUDA ELF (EM_CUDA = 190).
 
 ## Bluespec Hardware Module
 
