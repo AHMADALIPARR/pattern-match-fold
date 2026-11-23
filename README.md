@@ -41,6 +41,10 @@ cuda/
   pattern_fold.ptx            # Pure PTX kernel mirroring full_pattern_sass + warp barriers
   pattern_fold_inline.cu      # CUDA C++ with inline PTX (same sequence)
   warp_shuffle.cu             # Warp shuffle primitives (butterfly, up/down, XOR reduce)
+bench/
+  benchmark.cu                # CUDA vs host throughput (GB/s, Gops/s) + correctness
+  bench_avx2.c                # AVX2 NASM kernel throughput
+  README.md                   # Benchmark instructions
 bluespec/
   LatticeTemporalHash.bsv     # Synthesizable Bluespec module for the lattice-temporal hash
 ```
@@ -85,6 +89,21 @@ gcc -O2 -std=c11 host/launch_cubin.c -lcuda -o launch_cubin && ./launch_cubin
   - `warp_shuffle_demo` kernel demonstrating the primitives
 
 Both pure-PTX and inline kernels produce the same per-lane result as `full_pattern_sass` / the C reference model. The shuffle variants add inter-lane communication while preserving the local algebraic structure.
+
+## Performance Benchmarks
+
+See [`bench/README.md`](bench/README.md) for full instructions.
+
+```bash
+# CUDA device vs host
+nvcc -O3 -std=c++17 bench/benchmark.cu -o bench_cuda && ./bench_cuda
+
+# AVX2 NASM kernel
+nasm -f elf64 asm/pattern_kernel.asm -o pattern_kernel.o
+gcc -O3 -mavx2 bench/bench_avx2.c pattern_kernel.o -o bench_avx2 && ./bench_avx2
+```
+
+Reports GB/s, approximate Gops/s, and correctness (mismatches) across multiple problem sizes.
 
 ## Bluespec Hardware Module
 
