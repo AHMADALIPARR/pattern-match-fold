@@ -5,7 +5,6 @@
 [`ats/PatternMatchFold_refine.dats`](ats/PatternMatchFold_refine.dats)
 
 - Encodes Lean `Vec8`, `mixStep`, `processBlock`, and `avx2PatternKernel` as ATS dependent types.
-- Encodes `LatticeTemporalHash` parameters (`q=3329`, `n=8`, `m=16`, `T=8`).
 - Dense unrolling exceeds 800 lines.
 
 ## NATS Macro Expansion
@@ -14,28 +13,30 @@
 
 - Macro layer (`LANE_UNROLL_8`, `PI_ROUND`, `A_ROW`, `STAGE_A`..`STAGE_F`, `FINALIZE`).
 
-## SymPy Calculi
+## Church Numeral Linear Types
+
+[`church/ChurchLinear.hs`](church/ChurchLinear.hs)
+
+- Church numerals (`zero`, `succC`, `addC`, `mulC`, `expC`).
+- Linear Church numerals (`LChurch`, `lzero`, `lsucc`, `ladd`, `lmul`) using GHC linear types.
+- Concrete numerical encodings derived from Church (`toInt`, `fromInt`).
+- mixStep stages and lattice operations expressed as Church compositions.
+
+## Liquid Haskell Refinement (Workman-style)
+
+[`liquidhaskell/ChurchRefine.hs`](liquidhaskell/ChurchRefine.hs)
+
+- Real numerical bounds derived from Church encodings.
+- `Lane32` (0..2^32-1), `CoeffQ` (0..3328), `Byte8`, `Idx8`, `Idx16`.
+- `mixStepReal`, `temporalPiReal`, `encodeDigitReal`, `matVecEntryReal` with modular bounds.
+- 1% refinement metric via `refinementCoverage`.
+
+## SymPy / Church Calculi Emitter
 
 [`sympy/calculi.py`](sympy/calculi.py)
 
-- Symbolic computation of `mixStep` stages and `LatticeTemporalHash` operations.
-- Emits Liquid Haskell refinement types from the calculated forms.
-- Verifies deterministic reconstruction of pure functions.
-
-## Liquid Haskell Refinement
-
-[`liquidhaskell/MixStep.hs`](liquidhaskell/MixStep.hs)
-
-- Refinement types for `Lane`, `Coeff`, `Byte`, and index bounds.
-- `mixStep` with Liquid annotations matching the ATS/SymPy calculi.
-- `temporalPi`, `encodeDigit`, `matVecEntry` with modular bounds.
-- Derived from the ATS lock-step refinement via SymPy-calculated forms.
-
-## Fiat ADT Refinement (Coq)
-
-[`coq/Vec8_Fiat.v`](coq/Vec8_Fiat.v)
-
-- Fiat-style ADT for `Vec8` and `mixStep` with `⊇` relation.
+- Emits Liquid Haskell refinement types from Church numeral bounds.
+- Verifies Church addition and multiplication.
 
 ## Stack
 
@@ -43,7 +44,10 @@
 Lean models
     |
     v
-ATS refinement  -->  SymPy calculi  -->  Liquid Haskell
+ATS refinement
+    |
+    v
+Church linear types  -->  Liquid Haskell (Workman calculus)
     |
     v
 NATS macros
@@ -52,7 +56,7 @@ NATS macros
 ## Build
 
 ```bash
-patscc -o refine proofs/ats/PatternMatchFold_refine.dats
+ghc -XLinearTypes proofs/church/ChurchLinear.hs
+liquid proofs/liquidhaskell/ChurchRefine.hs
 python3 proofs/sympy/calculi.py
-liquid proofs/liquidhaskell/MixStep.hs
 ```
