@@ -5,6 +5,19 @@
 [![SM87](https://img.shields.io/badge/GPU-SM87-red.svg)](zig/)
 [![Build](https://img.shields.io/badge/build-make%20%2F%20nix-informational.svg)](Makefile)
 
+```bibtex
+@misc{snapkitty_collective_llc_2026,
+  author = { Snapkitty Collective LLC },
+  title = { devflow-finance-twin (Revision 9660eeb) },
+  year = 2026,
+  url = { https://huggingface.co/datasets/Snapkitty/devflow-finance-twin },
+  doi = { 10.57967/hf/11793 },
+  publisher = { Hugging Face }
+}
+```
+
+**DOI**: [10.57967/hf/11793](https://doi.org/10.57967/hf/11793)
+
 # Pattern Match & Fold
 
 **Document ID**: AERO-DOC-README-001  
