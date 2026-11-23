@@ -20,7 +20,7 @@
 
 # Pattern Match & Fold
 
-**Document ID**: Pattern Match & Fold 
+**Document ID**: AERO-DOC-README-001  
 **Revision**: 1.0  
 **Repository**: [AHMADALIPARR/pattern-match-fold](https://github.com/AHMADALIPARR/pattern-match-fold)  
 **Branch**: `main`  
@@ -80,7 +80,7 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 | Applicable Branch | main |
 | Purpose | Authoritative engineering reference for architecture, interfaces, verification, and reproduction |
 | Intended Audience | Formal verification engineers, systems engineers, hardware architects, independent reviewers |
-| Scope | All source modules under `asm/`, `lean/`, `zig/`, `cuda/`, `bluespec/`, `sourcepawn/`, `bench/`, `host/` |
+| Scope | All source modules under `asm/`, `lean/`, `zig/`, `cuda/`, `bluespec/`, `sourcepawn/`, `bench/`, `host/`, `proofs/` |
 | Terminology | See [Glossary](#18---glossary-and-notation) |
 
 **Revision History**
@@ -88,6 +88,7 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 | Rev | Date | Description |
 |-----|------|-------------|
 | 1.0 | 2026-11-22 | Initial aerospace-grade release with multi-target lowerings and Nix |
+| 1.1 | 2026-11-22 | Added ATS lock-step refinement and NATS macro expansion |
 
 ---
 
@@ -121,7 +122,9 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 
 ```mermaid
 graph TD
-    Lean[Lean 4 Models<br/>PatternMatchFold / SimdPQHash / LatticeTemporalHash] --> Asm[NASM AVX2 Kernels]
+    Lean[Lean 4 Models<br/>PatternMatchFold / SimdPQHash / LatticeTemporalHash] --> ATS[ATS Refinement]
+    ATS --> NATS[NATS Macro Expansion]
+    Lean --> Asm[NASM AVX2 Kernels]
     Lean --> SP[SourcePawn]
     Lean --> BS[Bluespec]
     Lean --> Zig[Zig SASS Lowering]
@@ -135,15 +138,15 @@ graph TD
 
 ```
 +------------------+     +------------------+     +------------------+
-|   Lean 4 Spec    |<--->|  NASM AVX2 Kern  |     |   Zig SASS /     |
-| PatternMatchFold |     | pattern_kernel   |     |   Cubin Builder  |
-| LatticeTemporal  |     | bit_pattern_kern |     | full_pattern_sass|
-+--------+---------+     +--------+---------+     +--------+---------+
-         |                        |                        |
-         v                        v                        v
+|   Lean 4 Spec    |---->|  ATS Refinement  |---->| NATS Macros      |
+| PatternMatchFold |     | 800+ LOC lockstep|     | STAGE/PI/A_ROW   |
+| LatticeTemporal  |     | proofs/ats/      |     | proofs/nats/     |
++--------+---------+     +------------------+     +------------------+
+         |
+         v
 +------------------+     +------------------+     +------------------+
-|  SourcePawn      |     |   Bluespec       |     |  CUDA / PTX +    |
-| LatticeTemporal  |     | mkLattice...     |     |  Warp Shuffle    |
+|  NASM AVX2 Kern  |     |   Zig SASS /     |     |  CUDA / PTX +    |
+| pattern_kernel   |     |   Cubin Builder  |     |  Warp Shuffle    |
 +------------------+     +------------------+     +------------------+
 ```
 
@@ -157,6 +160,8 @@ graph TD
 |------|---------|----------------|--------|---------|--------------|--------------|
 | `asm/` | AVX2 kernels | NASM | blocks, pattern, acc | matches, folded acc | none | host/pattern_host.c |
 | `lean/` | Formal models | Lean 4 | arrays / UInt | digests / counts | none | type-check |
+| `proofs/ats/` | Lock-step refinement | ATS | Lean invariants | refinement obligations | patscc | type-check |
+| `proofs/nats/` | Macro expansion | ATS macros | ATS refinement | expanded lemmas | patscc | type-check |
 | `zig/` | SASS + cubin | Zig | comptime SASS words | .cubin / binary | none | nvdisasm + launch_cubin.c |
 | `cuda/` | PTX / CUDA | PTX + CUDA C++ | device pointers | per-lane results | CUDA runtime | bench/benchmark.cu |
 | `bluespec/` | HW module | Bluespec | Put#(Bit#8) | Get#(Bit#256) | BSV libs | synthesis |
@@ -171,6 +176,7 @@ graph TD
 - `full_pattern_sass` (Zig)
 - `p3_kernel` (PTX / CUDA)
 - `mkLatticeTemporalHash` (Bluespec)
+- `mixStep_refine` / `finalize_refine` (ATS)
 
 ---
 
@@ -216,6 +222,14 @@ All mathematical definitions above use plain-text notation for reliable renderin
 - `SimdPQHash.lean`: sponge with `mix12`
 - `LatticeTemporalHash.lean`: `matVec`, `temporalPermute`, `hash`
 
+### ATS Refinement (`proofs/ats/`)
+
+- `PatternMatchFold_refine.dats`: 800+ line lock-step refinement of Lean invariants into ATS dependent types. Includes per-lane unrolling, full `pi(t,i)` expansion, full public matrix expansion, and finalisation with the extra temporal permute.
+
+### NATS Macros (`proofs/nats/`)
+
+- `nats_expand.dats`: Macro layer (`LANE_UNROLL_8`, `PI_ROUND`, `A_ROW`, `STAGE_A`..`STAGE_F`, `FINALIZE`) that expands the ATS refinement into families of lemmas.
+
 ### NASM (`asm/`)
 
 - `pattern_kernel.asm`: AVX2 8-lane (Windows x64 ABI)
@@ -247,6 +261,7 @@ All mathematical definitions above use plain-text notation for reliable renderin
 |-----------|----------------------|-----------|
 | NASM kernel | `avx2_pattern_kernel(blocks, pattern, acc, nblocks, &matches)` | Caller owns buffers |
 | Lean | `avx2PatternKernel : List Vec8 -> Pattern -> Acc -> (Nat x Acc)` | Pure |
+| ATS | `mixStep_refine`, `processBlock_refine`, `finalize_refine` | Pure |
 | Cubin | `p3_kernel(stream_ptr, sig_ptr)` via `cuModuleLoadData` | Device pointers |
 | Bluespec | `Put#(Bit#(8))` / `Get#(Bit#(256))` | FIFO ownership |
 | SourcePawn | `LatticeTemporalHash(const char[] msg, int len, int digest[8])` | Caller owns arrays |
@@ -262,8 +277,10 @@ All language boundaries preserve the algebraic structure documented in Section 0
 | PMF-SPEC | Lane-wise semantics match AVX2 | `lean/PatternMatchFold.lean` | Zero external deps | Type-check + dual-link intent |
 | LTH-SPEC | Modular lattice + temporal schedule | `lean/LatticeTemporalHash.lean` | q = 3329 | Consistent across SP/BSV |
 | SPQ-SPEC | 12-round ARX+MUL sponge | `lean/SimdPQHash.lean` | No NT assumptions | Lean definition |
+| ATS-REF | Lock-step refinement of Lean invariants | `proofs/ats/PatternMatchFold_refine.dats` | Lean models | 800+ LOC dense unrolling |
+| NATS-MAC | Macro expansion of ATS obligations | `proofs/nats/nats_expand.dats` | ATS refinement | STAGE/PI/A_ROW macros |
 
-No machine-checked refinement proofs are currently present; the dual-link is the intended foundation for them. Theorems are models, not yet equivalence proofs.
+The ATS and NATS layers are refinement targets. The Lean models remain the specification. No machine-checked equivalence proofs yet exist between ATS and the NASM/CUDA implementations; the dual-link is the intended foundation.
 
 ---
 
@@ -275,6 +292,7 @@ No machine-checked refinement proofs are currently present; the dual-link is the
 | SW-REQ-001 Zero external Lean deps | Lean models | `lean/*.lean` | Inspection | No imports beyond core |
 | IF-REQ-001 Cubin loadable | Zig builder | `emit_cubin.zig` | `cuModuleLoadData` | `host/launch_cubin.c` |
 | VER-REQ-001 Deterministic reference | C model | `ref_fold_lane` in `launch_cubin.c` | Mismatch count | bench/benchmark.cu |
+| VER-REQ-002 ATS lock-step | ATS refinement | `proofs/ats/` | patscc type-check | proofs/README.md |
 | SAF-REQ-001 Attribution retained | License | LICENSE | Inspection | LICENSE text |
 
 Requirements without full evidence are marked as design intent.
@@ -299,6 +317,13 @@ zig run zig/emit_cubin.zig
 nvcc -O3 bench/benchmark.cu -o bench_cuda
 ```
 
+**ATS refinement**:
+
+```bash
+patscc -o refine proofs/ats/PatternMatchFold_refine.dats
+patscc -o nats   proofs/nats/nats_expand.dats
+```
+
 See [flake.nix](flake.nix) and [Makefile](Makefile).
 
 ---
@@ -307,7 +332,7 @@ See [flake.nix](flake.nix) and [Makefile](Makefile).
 
 - Unit: `host/pattern_host.c`, `host/launch_cubin.c` (with `ref_fold_lane`)
 - Differential: CUDA kernel vs C reference in `bench/benchmark.cu`
-- Formal: Lean type-checking (models)
+- Formal: Lean type-checking (models); ATS type-checking (refinement)
 - Hardware: `nvdisasm -hex` on generated cubin; Bluespec synthesis
 
 No CI workflows are present in the repository at this revision.
@@ -389,8 +414,10 @@ nix develop
 ## 17 - Technical References
 
 - [docs/mathematical_description.md](docs/mathematical_description.md)
+- [proofs/README.md](proofs/README.md)
 - NVIDIA SASS / PTX documentation (SM86/SM87)
 - Lean 4 reference manual
+- ATS/Anairiats documentation
 - Bluespec SystemVerilog user guide
 - AGPL-3.0 text (in LICENSE)
 
@@ -408,6 +435,8 @@ nix develop
 | pi(t, i) | Temporal permutation schedule |
 | ARX | Add-Rotate-XOR |
 | SL-AGPL3-001 | Sovereign Leviathan additional terms |
+| ATS | Applied Type System (dependent types for refinement) |
+| NATS | Macro expansion layer over ATS refinement |
 
 ---
 
@@ -435,4 +464,4 @@ nix develop
 
 *Hark, though this node be but a spark, its covenant endureth through the dark.*
 
-**Topics**: `lean4` `avx2` `simd` `cuda` `ptx` `sass` `bluespec` `formal-verification` `post-quantum` `nix`
+**Topics**: `lean4` `avx2` `simd` `cuda` `ptx` `sass` `bluespec` `formal-verification` `post-quantum` `nix` `ats`
