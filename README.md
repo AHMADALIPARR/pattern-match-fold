@@ -31,6 +31,8 @@ host/
   pattern_host.c              # Minimal C test harness
 sourcepawn/
   LatticeTemporalHash.sp      # SourcePawn lowering of the lattice-temporal hash
+zig/
+  p3_sass_lowering.zig        # Zig 128-bit P3 ISA to SM87 SASS container lowering + pattern fold sequence
 ```
 
 ## Building the Assembly Kernel
@@ -46,6 +48,10 @@ gcc -O3 -mavx2 -mpopcnt -std=c11 host/pattern_host.c pattern_kernel.obj -o patte
 ## SourcePawn Lowering
 
 The lattice-temporal hash (`LatticeTemporalHash`) has been lowered into SourcePawn (`sourcepawn/LatticeTemporalHash.sp`) for use in SourceMod plugins. It preserves the modular arithmetic, public matrix, temporal permutation schedule, and byte encoding. Compile with a modern SourcePawn compiler supporting transitional syntax.
+
+## Zig GPU Lowering
+
+`zig/p3_sass_lowering.zig` defines a 64-bit Sovereign P3 instruction word and lowers selected opcodes (including a fused pattern-fold sequence mirroring the AVX2 mix round) into 128-bit SM86/SM87 SASS containers. It generates a binary blob at comptime via `pattern_fold_sm87`.
 
 ## Mathematical Semantics (Pattern Kernel)
 
@@ -64,7 +70,7 @@ Both are pure, zero-dependency Lean 4 and map directly onto SIMD instructions.
 
 ## Dual Linking
 
-This repository is dual-linked to the formal-verification lineage maintained under the Bel Esprit D'Accord Trust / SnapKitty Research Lab. The Lean models are the specification; the assembly is the implementation. The SourcePawn lowering provides an additional target for the lattice construction. Contributions that add refinement proofs are welcome under the same dual license.
+This repository is dual-linked to the formal-verification lineage maintained under the Bel Esprit D'Accord Trust / SnapKitty Research Lab. The Lean models are the specification; the assembly is the implementation. The SourcePawn and Zig lowerings provide additional targets. Contributions that add refinement proofs are welcome under the same dual license.
 
 ---
 
