@@ -21,7 +21,7 @@
 # Pattern Match & Fold
 
 **Document ID**: AERO-DOC-README-001  
-**Revision**: 1.0  
+**Revision**: 1.2  
 **Repository**: [AHMADALIPARR/pattern-match-fold](https://github.com/AHMADALIPARR/pattern-match-fold)  
 **Branch**: `main`  
 **Classification**: Engineering Documentation / Configuration-Controlled
@@ -75,7 +75,7 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 | Field | Value |
 |-------|-------|
 | Document Identifier | AERO-DOC-README-001 |
-| Revision | 1.0 |
+| Revision | 1.2 |
 | Repository | AHMADALIPARR/pattern-match-fold |
 | Applicable Branch | main |
 | Purpose | Authoritative engineering reference for architecture, interfaces, verification, and reproduction |
@@ -89,6 +89,7 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 |-----|------|-------------|
 | 1.0 | 2026-11-22 | Initial aerospace-grade release with multi-target lowerings and Nix |
 | 1.1 | 2026-11-22 | Added ATS lock-step refinement and NATS macro expansion |
+| 1.2 | 2026-11-22 | Added Church linear types and Liquid Haskell refinement |
 
 ---
 
@@ -122,27 +123,28 @@ Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocabl
 
 ```mermaid
 graph TD
-    Lean[Lean 4 Models<br/>PatternMatchFold / SimdPQHash / LatticeTemporalHash] --> ATS[ATS Refinement]
-    ATS --> NATS[NATS Macro Expansion]
-    Lean --> Asm[NASM AVX2 Kernels]
-    Lean --> SP[SourcePawn]
-    Lean --> BS[Bluespec]
-    Lean --> Zig[Zig SASS Lowering]
-    Zig --> Cubin[ELF64 Cubin Builder]
+    Lean[Lean 4 Models] --> ATS[ATS Refinement]
+    ATS --> Church[Church Linear Types]
+    Church --> LH[Liquid Haskell]
+    ATS --> NATS[NATS Macros]
+    Lean --> Asm[NASM AVX2]
+    Lean --> Zig[Zig SASS]
     Zig --> CUDA[CUDA / PTX]
-    CUDA --> Bench[Benchmarks]
-    Asm --> Bench
 ```
 
 **ASCII Architecture**
 
 ```
 +------------------+     +------------------+     +------------------+
-|   Lean 4 Spec    |---->|  ATS Refinement  |---->| NATS Macros      |
-| PatternMatchFold |     | 800+ LOC lockstep|     | STAGE/PI/A_ROW   |
-| LatticeTemporal  |     | proofs/ats/      |     | proofs/nats/     |
-+--------+---------+     +------------------+     +------------------+
-         |
+|   Lean 4 Spec    |---->|  ATS Refinement  |---->| Church Linear    |
+| PatternMatchFold |     | 800+ LOC         |     | Data.Bits real   |
++--------+---------+     +--------+---------+     +--------+---------+
+         |                        |                        |
+         |                        v                        v
+         |               +------------------+     +------------------+
+         |               |   NATS Macros    |     | Liquid Haskell   |
+         |               | STAGE/PI/A_ROW   |     | Lane32/CoeffQ    |
+         |               +------------------+     +------------------+
          v
 +------------------+     +------------------+     +------------------+
 |  NASM AVX2 Kern  |     |   Zig SASS /     |     |  CUDA / PTX +    |
@@ -162,6 +164,8 @@ graph TD
 | `lean/` | Formal models | Lean 4 | arrays / UInt | digests / counts | none | type-check |
 | `proofs/ats/` | Lock-step refinement | ATS | Lean invariants | refinement obligations | patscc | type-check |
 | `proofs/nats/` | Macro expansion | ATS macros | ATS refinement | expanded lemmas | patscc | type-check |
+| `proofs/church/` | Church linear types | Haskell + LinearTypes | ATS | real bit ops | ghc | type-check |
+| `proofs/liquidhaskell/` | Liquid refinement | Liquid Haskell | Church | bounded types | liquid | type-check |
 | `zig/` | SASS + cubin | Zig | comptime SASS words | .cubin / binary | none | nvdisasm + launch_cubin.c |
 | `cuda/` | PTX / CUDA | PTX + CUDA C++ | device pointers | per-lane results | CUDA runtime | bench/benchmark.cu |
 | `bluespec/` | HW module | Bluespec | Put#(Bit#8) | Get#(Bit#256) | BSV libs | synthesis |
@@ -176,7 +180,9 @@ graph TD
 - `full_pattern_sass` (Zig)
 - `p3_kernel` (PTX / CUDA)
 - `mkLatticeTemporalHash` (Bluespec)
-- `mixStep_refine` / `finalize_refine` (ATS)
+- `mixStep_refine` (ATS)
+- `mixStep` / `xor32` (Church)
+- `mixStepR` (Liquid Haskell)
 
 ---
 
@@ -224,11 +230,19 @@ All mathematical definitions above use plain-text notation for reliable renderin
 
 ### ATS Refinement (`proofs/ats/`)
 
-- `PatternMatchFold_refine.dats`: 800+ line lock-step refinement of Lean invariants into ATS dependent types. Includes per-lane unrolling, full `pi(t,i)` expansion, full public matrix expansion, and finalisation with the extra temporal permute.
+- `PatternMatchFold_refine.dats`: 800+ line lock-step refinement of Lean invariants into ATS dependent types.
 
 ### NATS Macros (`proofs/nats/`)
 
-- `nats_expand.dats`: Macro layer (`LANE_UNROLL_8`, `PI_ROUND`, `A_ROW`, `STAGE_A`..`STAGE_F`, `FINALIZE`) that expands the ATS refinement into families of lemmas.
+- `nats_expand.dats`: Macro layer expanding ATS refinement into families of lemmas.
+
+### Church Linear Types (`proofs/church/`)
+
+- `ChurchLinear.hs`: Church numerals and linear Church numerals (GHC `LinearTypes`). Real bit operations via `Data.Bits` (`xor`, `shiftR`, `shiftL`, `.&.`). Native `mixStep`, `temporalPi`, `encodeDigit`, `matVecEntry`.
+
+### Liquid Haskell (`proofs/liquidhaskell/`)
+
+- `ChurchRefine.hs`: Liquid Haskell refinement types wrapping the real ChurchLinear operations. `Lane32`, `CoeffQ`, `Byte8`, `Idx8`, `Idx16`. `mixStepR`, `temporalPiR`, `encodeDigitR`, `matVecEntryR`.
 
 ### NASM (`asm/`)
 
@@ -262,6 +276,8 @@ All mathematical definitions above use plain-text notation for reliable renderin
 | NASM kernel | `avx2_pattern_kernel(blocks, pattern, acc, nblocks, &matches)` | Caller owns buffers |
 | Lean | `avx2PatternKernel : List Vec8 -> Pattern -> Acc -> (Nat x Acc)` | Pure |
 | ATS | `mixStep_refine`, `processBlock_refine`, `finalize_refine` | Pure |
+| Church | `mixStep`, `xor32`, `temporalPi` | Pure |
+| Liquid Haskell | `mixStepR`, `xor32R`, `temporalPiR` | Pure |
 | Cubin | `p3_kernel(stream_ptr, sig_ptr)` via `cuModuleLoadData` | Device pointers |
 | Bluespec | `Put#(Bit#(8))` / `Get#(Bit#(256))` | FIFO ownership |
 | SourcePawn | `LatticeTemporalHash(const char[] msg, int len, int digest[8])` | Caller owns arrays |
@@ -279,8 +295,10 @@ All language boundaries preserve the algebraic structure documented in Section 0
 | SPQ-SPEC | 12-round ARX+MUL sponge | `lean/SimdPQHash.lean` | No NT assumptions | Lean definition |
 | ATS-REF | Lock-step refinement of Lean invariants | `proofs/ats/PatternMatchFold_refine.dats` | Lean models | 800+ LOC dense unrolling |
 | NATS-MAC | Macro expansion of ATS obligations | `proofs/nats/nats_expand.dats` | ATS refinement | STAGE/PI/A_ROW macros |
+| CHURCH | Church linear types with real bit ops | `proofs/church/ChurchLinear.hs` | ATS refinement | Data.Bits implementation |
+| LH-REF | Liquid Haskell bounded types | `proofs/liquidhaskell/ChurchRefine.hs` | Church | Lane32/CoeffQ refinements |
 
-The ATS and NATS layers are refinement targets. The Lean models remain the specification. No machine-checked equivalence proofs yet exist between ATS and the NASM/CUDA implementations; the dual-link is the intended foundation.
+The Lean models remain the specification. ATS, Church, and Liquid Haskell are successive refinement targets.
 
 ---
 
@@ -293,6 +311,8 @@ The ATS and NATS layers are refinement targets. The Lean models remain the speci
 | IF-REQ-001 Cubin loadable | Zig builder | `emit_cubin.zig` | `cuModuleLoadData` | `host/launch_cubin.c` |
 | VER-REQ-001 Deterministic reference | C model | `ref_fold_lane` in `launch_cubin.c` | Mismatch count | bench/benchmark.cu |
 | VER-REQ-002 ATS lock-step | ATS refinement | `proofs/ats/` | patscc type-check | proofs/README.md |
+| VER-REQ-003 Church real ops | Church linear types | `proofs/church/` | ghc type-check | Data.Bits |
+| VER-REQ-004 Liquid bounds | Liquid Haskell | `proofs/liquidhaskell/` | liquid type-check | Lane32/CoeffQ |
 | SAF-REQ-001 Attribution retained | License | LICENSE | Inspection | LICENSE text |
 
 Requirements without full evidence are marked as design intent.
@@ -317,11 +337,13 @@ zig run zig/emit_cubin.zig
 nvcc -O3 bench/benchmark.cu -o bench_cuda
 ```
 
-**ATS refinement**:
+**Refinement layers**:
 
 ```bash
 patscc -o refine proofs/ats/PatternMatchFold_refine.dats
 patscc -o nats   proofs/nats/nats_expand.dats
+ghc -XLinearTypes proofs/church/ChurchLinear.hs
+liquid proofs/liquidhaskell/ChurchRefine.hs
 ```
 
 See [flake.nix](flake.nix) and [Makefile](Makefile).
@@ -332,7 +354,7 @@ See [flake.nix](flake.nix) and [Makefile](Makefile).
 
 - Unit: `host/pattern_host.c`, `host/launch_cubin.c` (with `ref_fold_lane`)
 - Differential: CUDA kernel vs C reference in `bench/benchmark.cu`
-- Formal: Lean type-checking (models); ATS type-checking (refinement)
+- Formal: Lean type-checking; ATS type-checking; GHC linear types; Liquid Haskell
 - Hardware: `nvdisasm -hex` on generated cubin; Bluespec synthesis
 
 No CI workflows are present in the repository at this revision.
@@ -418,6 +440,8 @@ nix develop
 - NVIDIA SASS / PTX documentation (SM86/SM87)
 - Lean 4 reference manual
 - ATS/Anairiats documentation
+- GHC LinearTypes documentation
+- Liquid Haskell documentation
 - Bluespec SystemVerilog user guide
 - AGPL-3.0 text (in LICENSE)
 
@@ -437,6 +461,8 @@ nix develop
 | SL-AGPL3-001 | Sovereign Leviathan additional terms |
 | ATS | Applied Type System (dependent types for refinement) |
 | NATS | Macro expansion layer over ATS refinement |
+| Church | Church numeral encoding of numerical operations |
+| Liquid Haskell | Refinement type system for Haskell |
 
 ---
 
@@ -464,4 +490,4 @@ nix develop
 
 *Hark, though this node be but a spark, its covenant endureth through the dark.*
 
-**Topics**: `lean4` `avx2` `simd` `cuda` `ptx` `sass` `bluespec` `formal-verification` `post-quantum` `nix` `ats`
+**Topics**: `lean4` `avx2` `simd` `cuda` `ptx` `sass` `bluespec` `formal-verification` `post-quantum` `nix` `ats` `haskell` `liquid-haskell`
