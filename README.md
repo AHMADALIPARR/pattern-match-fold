@@ -37,6 +37,9 @@ zig/
   emit_cubin.zig              # Zero-dependency comptime ELF64 .cubin builder (SM87)
   p3_mem_sm87.zig             # Comptime SASS load/store helpers + short sequences
   full_pattern_sass.zig       # Full 16-step pattern-fold SASS (LOP3/SHF/IMAD) matching AVX2 mix
+cuda/
+  pattern_fold.ptx            # Pure PTX kernel mirroring full_pattern_sass + warp barriers
+  pattern_fold_inline.cu      # CUDA C++ with inline PTX (same sequence)
 bluespec/
   LatticeTemporalHash.bsv     # Synthesizable Bluespec module for the lattice-temporal hash
 ```
@@ -70,7 +73,12 @@ nvdisasm -hex p3_sm87.cubin
 gcc -O2 -std=c11 host/launch_cubin.c -lcuda -o launch_cubin && ./launch_cubin
 ```
 
-Note: The attached ELF hex dump is an x86_64 host binary (EM_X86_64, containing a `mat_vec` function), not a CUDA cubin. The cubin builder produces a CUDA ELF (EM_CUDA = 190).
+## CUDA / PTX Lowering (mirrors Zig SASS)
+
+- `cuda/pattern_fold.ptx` is a pure PTX kernel (sm_87) that implements the identical 16-step sequence. Warp scheduling uses `bar.sync` where the SASS version used scoreboard barriers.
+- `cuda/pattern_fold_inline.cu` is the same sequence expressed with inline PTX inside a CUDA C++ kernel, using `__syncwarp()` for the barrier points.
+
+Both produce the same per-lane result as `full_pattern_sass` / the C reference model.
 
 ## Bluespec Hardware Module
 
@@ -93,7 +101,7 @@ Both are pure, zero-dependency Lean 4 and map directly onto SIMD instructions.
 
 ## Dual Linking
 
-This repository is dual-linked to the formal-verification lineage maintained under the Bel Esprit D'Accord Trust / SnapKitty Research Lab. The Lean models are the specification; the assembly is the implementation. The SourcePawn, Zig, and Bluespec lowerings provide additional targets. Contributions that add refinement proofs are welcome under the same dual license.
+This repository is dual-linked to the formal-verification lineage maintained under the Bel Esprit D'Accord Trust / SnapKitty Research Lab. The Lean models are the specification; the assembly is the implementation. The SourcePawn, Zig, CUDA/PTX, and Bluespec lowerings provide additional targets. Contributions that add refinement proofs are welcome under the same dual license.
 
 ---
 
