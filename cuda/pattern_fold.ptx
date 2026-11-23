@@ -1,0 +1,87 @@
+// SOVEREIGN LEVIATHAN NODE LICENSE
+// License-ID: SL-AGPL3-001 | Covenant-Version: 1.0
+// SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
+// Copyright (C) 2026 SnapKittyWest. Ahmad Ali Parr, Bel Esprit D'Accord Irrevocable Trust.
+//
+// PTX kernel that mirrors the Zig full_pattern_sass 16-step sequence.
+// Warp scheduling is implicit (lockstep) with explicit barriers where the SASS used scoreboards.
+// Target: sm_87 (Ampere / Orin)
+
+.version 8.5
+.target sm_87
+.address_size 64
+
+.visible .entry p3_kernel(
+    .param .u64 stream_ptr,   // c[0x0][0x160] equivalent
+    .param .u64 sig_ptr       // c[0x0][0x168] equivalent
+)
+{
+    .reg .b32 %r<16>;
+    .reg .b64 %rd<4>;
+    .reg .pred %p<2>;
+
+    // 1. lane_id = SR_TID.X (mirrors s2rTidX)
+    mov.u32 %r0, %tid.x;
+
+    // 2. Load 64-bit pointers (mirrors movCbank0 / imadWideCbank0 base)
+    ld.param.u64 %rd0, [stream_ptr];
+    ld.param.u64 %rd1, [sig_ptr];
+
+    // Compute per-lane addresses: base + lane_id * 4
+    mul.wide.u32 %rd2, %r0, 4;
+    add.u64 %rd2, %rd0, %rd2;          // stream[lane]
+    mul.wide.u32 %rd3, %r0, 4;
+    add.u64 %rd3, %rd1, %rd3;          // sig[lane]
+
+    // 3. Load token -> R4 (mirrors ldgEU32). Warp barrier equivalent to scoreboard wait.
+    ld.global.u32 %r4, [%rd2];
+    bar.sync 0;                        // wait for load (SB0 equivalent)
+
+    // 4. Seed: R4 ^= lane_id; R8 = R4; R9 = lane_id
+    xor.b32 %r4, %r4, %r0;
+    mov.u32 %r8, %r4;
+    mov.u32 %r9, %r0;
+
+    // 5. Stage A: R4 ^= (R4 >> 8) ^ (R4 << 14)
+    shr.u32 %r10, %r4, 8;
+    shl.b32 %r11, %r4, 14;
+    xor.b32 %r4, %r4, %r10;
+    xor.b32 %r4, %r4, %r11;
+
+    // 6. Stage B: R4 ^= (R4 >> 3) ^ (R4 << 11)
+    shr.u32 %r10, %r4, 3;
+    shl.b32 %r11, %r4, 11;
+    xor.b32 %r4, %r4, %r10;
+    xor.b32 %r4, %r4, %r11;
+
+    // 7. Stage C: R8 += R4; R10 = (R8 * R4) ^ R8; R9 += R10
+    add.u32 %r8, %r8, %r4;
+    mul.lo.u32 %r10, %r8, %r4;
+    xor.b32 %r10, %r10, %r8;
+    add.u32 %r9, %r9, %r10;
+
+    // 8. Stage D: R9 ^= (R9 >> 9) ^ (R9 << 5)
+    shr.u32 %r10, %r9, 9;
+    shl.b32 %r11, %r9, 5;
+    xor.b32 %r9, %r9, %r10;
+    xor.b32 %r9, %r9, %r11;
+
+    // 9. Stage E: R9 ^= (R9 >> 13) ^ (R9 << 7)
+    shr.u32 %r10, %r9, 13;
+    shl.b32 %r11, %r9, 7;
+    xor.b32 %r9, %r9, %r10;
+    xor.b32 %r9, %r9, %r11;
+
+    // 10. Stage F: R8 += R9; R10 = (R8 * R9) ^ R8; R4 += R10
+    add.u32 %r8, %r8, %r9;
+    mul.lo.u32 %r10, %r8, %r9;
+    xor.b32 %r10, %r10, %r8;
+    add.u32 %r4, %r4, %r10;
+
+    // 11. Store result (mirrors stgEU32). Barrier before exit.
+    st.global.u32 [%rd3], %r4;
+    bar.sync 0;                        // wait for store (SB1 equivalent)
+
+    // 12. Exit (implicit)
+    ret;
+}
