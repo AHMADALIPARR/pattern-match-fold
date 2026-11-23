@@ -134,16 +134,25 @@ module mkLatticeTemporalHash(LatticeHashIfc);
    endrule
 
    // Rule: finalisation after length absorption
+   // Matches Lean/SourcePawn: absorbShort (includes one permute) + one extra temporalPermute
    rule doFinalize (finalizing && !finished);
       // simplified length encoding (low 8 bits of byte count)
       let lenByte = pack(truncate(byteCount));
       let x = encodeByte(lenByte);
-      absorbShort(x);
-      // one extra temporal permutation already performed inside absorbShort
+
+      // First absorb (matVec + add + temporalPermute) — updates state
+      let y = matVec(x);
+      let z = zipWith(addMod, state, y);
+      let afterAbsorb = temporalPermute(z);
+
+      // Extra temporalPermute to match Lean and SourcePawn finalisation
+      let finalState = temporalPermute(afterAbsorb);
+      state <= finalState;
+
       // Pack first 8 coefficients into 256-bit digest
       Bit#(256) digest = 0;
       for (Integer i = 0; i < 8; i = i + 1)
-         digest[i*32 + 31 : i*32] = zeroExtend(state[i]);
+         digest[i*32 + 31 : i*32] = zeroExtend(finalState[i]);
       outQ.enq(digest);
       finished <= True;
       finalizing <= False;
